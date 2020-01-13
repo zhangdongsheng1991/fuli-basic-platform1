@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.server.mapper.AuthorityApiMapper">
+
+
+    <select id="getApisByGroudId" resultType="com.fuli.server.model.vo.AuthorityApiVO">
+                 SELECT
+                  b.path as api
+                FROM
+                  `authority_relate_api` a,
+                  `base_api` b
+                WHERE a.`api_id` = b.`api_id`
+                  AND a.`authority_group_id` =#{groudId}
+    </select>
+
+    <insert id="authorityBindApi">
+        insert into
+        authority_relate_api(authority_group_id,api_id)
+        values
+        <foreach collection="apiIds" item="api" separator=",">
+            (#{groudId},#{api})
+        </foreach>
+    </insert>
+
+    <insert id="saveApis" parameterType="List">
+        INSERT INTO `base_api` (
+            `api_code`,
+            `api_name`,
+            `api_category`,
+            `api_desc`,
+            `request_method`,
+            `content_type`,
+            `service_id`,
+            `path`,
+            `priority`,
+            `status`,
+            `create_time`,
+            `update_time`,
+            `is_persist`,
+            `is_auth`,
+            `is_open`,
+            `class_name`,`method_name`) VALUES
+        <foreach collection="apis" item="api" index="index" separator=",">
+            (
+            #{api.apiCode},
+            <if test="api.apiName!=null">
+                #{api.apiName},
+            </if>
+            #{api.apiCategory},
+            <if test="api.apiDesc!=null">
+                #{api.apiDesc},
+            </if>
+            <if test="api.requestMethod!=null">
+                #{api.requestMethod},
+            </if>
+            <if test="api.contentType!=null">
+                #{api.contentType},
+            </if>
+
+            #{api.serviceId},
+            #{api.path},
+            #{api.priority},
+            #{api.status},
+            #{api.createTime},
+            #{api.updateTime},
+            #{api.isPersist},
+            #{api.isAuth},
+            #{api.isOpen},
+            <if test="api.className!=null">
+                #{api.className},
+            </if>
+            <if test="api.methodName!=null">
+                #{api.methodName}
+            </if>
+
+        </foreach>
+    </insert>
+
+</mapper>

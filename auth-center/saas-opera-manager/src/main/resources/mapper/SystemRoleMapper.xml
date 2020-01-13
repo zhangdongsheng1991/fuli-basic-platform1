@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SystemRoleMapper">
+
+    <!--根据用户获取拥有的角色列表-->
+    <select id="listSystemRoleByUserId" resultType="com.fuli.cloud.model.SystemRoleDO">
+        SELECT
+            r.id,
+            r.`name`,
+            r.`status`,
+            r.administrators,
+            r.approval_return_msg,
+            r.operation_account,
+            r.create_time,
+            r.update_time,
+            r.description
+        FROM
+            system_role r
+        INNER JOIN system_role_user ru ON ru.role_id=r.id
+        WHERE
+            r.`status` = 1 AND ru.user_id= #{userId}
+    </select>
+
+
+    <!--获取所有的菜单, url不为空-->
+    <select id="queryAllMenu" resultType="java.util.Map">
+        SELECT
+            m.id,
+            m.url
+        FROM
+            `system_menu` m
+        WHERE
+            LENGTH(m.url) > 3 AND m.`status`=1
+    </select>
+
+    <!--获取所有的权限菜单-->
+    <select id="queryAllRoleMenu" resultType="java.util.Map">
+        SELECT
+            r.id roleId,
+            GROUP_CONCAT(m.menu_id) menuId
+        FROM
+            system_role r
+        INNER JOIN system_role_menu m ON r.id = m.role_id
+        INNER JOIN system_menu sm ON m.menu_id = sm.id
+        WHERE
+            r.`status`=1 AND sm.`status`=1  AND LENGTH(sm.url)>3
+        <if test="roleId != null">
+            AND r.id = #{roleId}
+        </if>
+        GROUP BY r.id
+    </select>
+
+
+    <!--获取所有用户的角色-->
+    <select id="queryAllUserRole" resultType="java.util.Map">
+      SELECT
+        m.user_id userId,
+        GROUP_CONCAT(m.role_id) roleId
+      FROM
+        system_role_user m
+	  INNER JOIN system_role r ON r.id = m.role_id AND r.`status`=1
+      GROUP BY m.user_id
+    </select>
+
+</mapper>

@@ -1,0 +1,47 @@
+server:
+  port: 8600
+spring:
+  kafka:
+    bootstrap-servers: 10.10.1.237:9092
+  application:
+    name: task-server
+  cloud:
+    #####  以下是nacos配置
+    nacos:   # nacos注册中心
+      discovery:  # nacos注册中心
+        server-addr: 192.168.13.139:8848,192.168.13.137:8848,192.168.13.138:8848
+      config:   # nacos配置中心
+        namespace: e0f353a6-7d5a-4a73-a9a2-37e585e75071  # 命名空间
+        server-addr: 192.168.13.139:8848,192.168.13.137:8848,192.168.13.138:8848
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: task-server.yml
+            group: DEFAULT_GROUP
+          - data-id: rabbitmq.yml # mq配置
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # rediss配置
+            group: DEFAULT_GROUP
+          - data-id: redisson.yml  # redisson分布式锁配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml # sentinel配置
+            group: DEFAULT_GROUP
+
+  quartz:
+    job-store-type: jdbc
+    properties:
+      org:
+        quartz:
+          jobStore:
+            class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            clusterCheckinInterval: 10000
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+            isClustered: true
+            tablePrefix: QRTZ_
+            useProperties: false
+          scheduler:
+            instanceId: AUTO
+            instanceName: clusteredScheduler
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 10
+            threadPriority: 5
+            threadsInheritContextClassLoaderOfInitializingThread: true

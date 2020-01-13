@@ -1,0 +1,32 @@
+server:
+  port: 9002
+
+spring:
+  kafka:
+    bootstrap-servers: 10.10.1.236:9092
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: saas-opera-manager
+  cloud:
+    #####  以下是nacos配置
+    nacos:
+      discovery:  # nacos注册中心
+        server-addr: 192.168.13.131:8848
+      config:   # nacos配置中心
+        namespace: 965f8b38-0d06-479f-b130-f65d99e96cd7
+        server-addr: 192.168.13.131:8848
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: saas-opera-manager.yml
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # redis配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml  # sentinel配置
+            group: DEFAULT_GROUP
+          - data-id: rabbitmq.yml  # mq配置
+            group: DEFAULT_GROUP
+
+
+
+
+

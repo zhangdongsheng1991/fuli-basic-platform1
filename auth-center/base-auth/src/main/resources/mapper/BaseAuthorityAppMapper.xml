@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.server.mapper.AuthorityAppMapper">
+    <resultMap id="BaseResultMap" type="com.fuli.auth.common.model.CustomAuthority">
+        <!--
+          WARNING - @mbg.generated
+        -->
+        <result column="authority_group_id" jdbcType="BIGINT" property="authorityGroupId"/>
+        <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime"/>
+        <result column="authority" jdbcType="VARCHAR" property="authority"/>
+
+    </resultMap>
+
+    <select id="getAuthorityByClientId"
+            resultMap="BaseResultMap">
+                  SELECT
+                      a.`authority_group_id`,
+                      b.authority,
+                      a.`expire_time`
+                    FROM
+                      `app_releate_authority` a
+                      INNER JOIN `base_authority_group` b
+                        ON a.`authority_group_id` = b.`group_id`
+                    WHERE a.`app_key` = #{clientId}
+                      AND b.`status` = 1
+    </select>
+</mapper>

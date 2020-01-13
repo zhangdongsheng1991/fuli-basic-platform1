@@ -1,0 +1,15 @@
+server:
+  port: 8527
+spring:
+  application:
+    name: sba-monitor
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 172.16.4.4:8849
+      config:   # nacos配置中心
+        namespace: cfd758fc-b999-499a-8621-c914583e13ae  # 命名空间
+        server-addr: 172.16.4.4:8849
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: sba-server.yml
+            group: DEFAULT_GROUP

@@ -1,0 +1,31 @@
+server:
+  port: 8528
+spring:
+  kafka:
+    bootstrap-servers: 172.16.10.2:9092
+  application:
+    name: open-auth
+  cloud:
+    #####  以下是nacos配置
+    nacos:   # nacos注册中心
+      discovery:  # nacos注册中心
+        server-addr: 172.16.4.4:8849
+      config:   # nacos配置中心
+        namespace: cfd758fc-b999-499a-8621-c914583e13ae  # 命名空间
+        server-addr: 172.16.4.4:8849
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: open-auth.yml
+            group: DEFAULT_GROUP
+          - data-id: rabbitmq.yml # mq配置
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # rediss配置
+            group: DEFAULT_GROUP
+          - data-id: redisson.yml  # redisson分布式锁配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml # sentinel配置
+            group: DEFAULT_GROUP
+    # sentinel客户端端口
+    sentinel:
+      transport:
+        port: 9528
+

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.user.dao.EmployeeMapper">
+
+    <!-- 实名认证时根据身份证获取已实名员工数据 -->
+    <select id="getEmployeeByIdCard" resultType="com.fuli.user.model.EmployeeDO" >
+        SELECT
+            e.id,
+            e.user_id,
+            a.phone phoneNumber,
+            e.company_id,
+            e.`name`,
+            e.certificate_card
+        FROM
+            employee e
+        INNER JOIN app_user a ON e.user_id = a.id
+        WHERE
+            e.certificate_card= #{idCard}
+            AND a.id != #{userId} AND a.is_identification=1
+        LIMIT 1
+    </select>
+
+
+    <!-- 根据用户id获取在职员工列表且openId为空 -->
+    <select id="listEmployeeByUserId" resultType="com.fuli.user.model.DataRecordEmployeeDO" >
+        SELECT
+            id employeeId,
+            company_id,
+            user_id,
+            `name`,
+            phone_number,
+            certificate_type,
+            certificate_card,
+            email,
+            gender,
+            `status`,
+            user_from,
+            employment_date
+        FROM
+            employee
+        WHERE
+            `status`=1 AND open_id='' AND user_id=#{userId}
+    </select>
+
+
+</mapper>

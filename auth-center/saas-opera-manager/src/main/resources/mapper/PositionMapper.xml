@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.PositionMapper">
+  <resultMap id="baseResultMap" type="com.fuli.cloud.vo.PositionVo">
+    <result column="id" jdbcType="INTEGER" property="id" />
+    <result column="department_id" jdbcType="INTEGER" property="departmentId" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+      <result column="name" jdbcType="VARCHAR" property="label" />
+    <result column="code" jdbcType="VARCHAR" property="code" />
+    <result column="path" jdbcType="VARCHAR" property="path" />
+    <result column="parent_id" jdbcType="INTEGER" property="parentId" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="operation_account" jdbcType="VARCHAR" property="operationAccount" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="employeeCount" jdbcType="INTEGER" property="employeeCount" />
+      <result column="parentName" jdbcType="VARCHAR" property="parentName"/>
+  </resultMap>
+  <sql id="baseColumnList">
+    id, department_id,name, code, path,
+    parent_id, status,operation_account, update_time,create_time
+  </sql>
+
+  <select id="getPositionList" parameterType="com.fuli.cloud.dto.PositionDto" resultMap="baseResultMap">
+    select
+        p.id, p.department_id,
+      p.name, p.code, p.path,
+      p.parent_id, p.status,p.operation_account, p.update_time,
+      p.create_time,
+        (select count(1) from system_user e where e.status = 1 and e.position_id = p.id) employeeCount,
+        pp.name parentName
+    from
+        system_position p
+    left join system_position pp on p.parent_id = pp.id
+    <where>
+        <if test="name != null and name != ''">
+            and p.name like concat('%',#{name},'%')
+        </if>
+
+        <if test="code != null and code != ''">
+            and p.code like concat('%',#{code},'%')
+        </if>
+
+        <if test="startTime != null">
+            and p.create_time >= #{startTime}
+        </if>
+
+        <if test="endTime != null">
+            and p.create_time &lt;= #{endTime}
+        </if>
+
+        <if test="status != null">
+            and p.status = #{status}
+        </if>
+    </where>
+    order by p.id desc
+  </select>
+
+    <select id="getAllPositionInfo" parameterType="com.fuli.cloud.dto.PositionDto" resultType="com.fuli.cloud.vo.OrganazationVo">
+        select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+        AND department_id = #{departmentId}
+        <if test="id != null and id != 0">
+            and p.id != #{id}
+        </if>
+
+    </select>
+
+  <select id="getPositionById" resultType="com.fuli.cloud.vo.PositionVo">
+    select <include refid="baseColumnList" />
+    from
+      system_position
+    where
+      id = #{id}
+  </select>
+
+    <select id="getPositionAndParentById" resultType="com.fuli.cloud.vo.PositionVo">
+        select
+          p.id, p.department_id,p.name,p.code, p.path,
+          p.parent_id, p.status,p.operation_account, p.update_time,
+          p.create_time, pp.name parentName
+        from
+            system_position p
+        left join
+            system_position pp on p.parent_id = pp.id
+        where
+          p.id = #{id}
+    </select>
+
+  <select id="getEnableEmployeeCount" resultType="java.lang.Integer">
+    select
+        count(p.id)
+    from
+        system_position p
+    inner join
+         system_user e on p.id = e.position_id and e.`status` = 1
+    where
+        (p.id = #{positionId} or FIND_IN_SET(#{positionId},p.path))
+  </select>
+
+    <select id="getPositionByParentId" resultType="com.fuli.cloud.vo.OrganazationVo">
+      select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+      where
+        p.department_id = #{departmentId}
+      and p.`status` = 1
+      and p.parent_id = #{parentId}
+      <if test="positionId != null and positionId != 0">
+          and p.id != #{positionId}
+      </if>
+  </select>
+
+    <select id="getCompanyPosition" parameterType="com.fuli.cloud.model.SystemPosition" resultType="com.fuli.cloud.model.SystemPosition">
+      select
+        <include refid="baseColumnList" />
+      from
+        system_position
+      <where>
+          <if test="name != null and name != ''">
+              and name= #{name}
+          </if>
+          <if test="code != null and code != ''">
+              and code = #{code}
+          </if>
+      </where>
+
+      limit 1
+    </select>
+
+    <update id="updatePositionPathByParentId">
+        update
+          system_position
+        set
+          path =  replace(concat(':',path,','),concat(':',#{oldPath},','),concat(#{newPath},',')),update_time = now()
+        where
+
+          FIND_IN_SET(#{positionId},path)
+    </update>
+
+    <update id="updatePathSeparateByParentId">
+        update
+          system_position
+        set
+          path =  substr(path,1,length(path)-1)
+        where
+          FIND_IN_SET(#{positionId},path)
+    </update>
+
+
+    <!--获取上级岗位是上级部门的岗位-->
+    <select id="getParentDeptPosition" resultType="com.fuli.cloud.vo.OrganazationVo">
+      select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        inner join system_position pp on p.parent_id = pp.id and pp.department_id = d.parent_id
+        where
+        p.status = 1
+        and
+          p.department_id = #{departmentId}
+        <if test="positionId != null and positionId != 0">
+            and p.id != #{positionId}
+        </if>
+    </select>
+
+    <!--根据部门ID及上级部门ID获取上级岗位是上级部门的岗位-->
+    <select id="getParentDeptPositionByParentId" resultMap="baseResultMap">
+      select
+        p.id, p.department_id,p.name, p.code, p.path,
+            p.parent_id, p.status,p.operation_account, p.update_time,p.create_time
+        from system_position p
+        inner join system_position pp on p.parent_id = pp.id
+        where
+        p.status = 1
+        and
+          p.department_id = #{departmentId}
+        and
+          pp.department_id = #{parentId}
+    </select>
+
+    <!-- 本部门及下一级部门的所有有效岗位列表 -->
+    <select id="getPositionAndNextChild" resultType="com.fuli.cloud.vo.OrganazationVo">
+     select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+        AND p.department_id in(#{departmentId},#{childDeptId})
+        <if test="positionId != null and positionId != 0">
+            and p.id != #{positionId}
+        </if>
+    </select>
+
+    <select id="getPositionAndChilds" resultType="com.fuli.cloud.vo.OrganazationVo">
+        select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+        AND p.department_id = #{departmentId}
+        <if test="positionId != null and positionId != 0">
+            and p.id != #{positionId}
+        </if>
+        union all
+         select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+        and FIND_IN_SET(#{departmentId},d.parent_id)
+        <if test="positionId != null and positionId != 0">
+            and p.id != #{positionId}
+        </if>
+    </select>
+
+    <select id="getPositions" resultType="com.fuli.cloud.vo.OrganazationVo">
+       select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+    </select>
+
+    <select id="getRootPosition" resultType="com.fuli.cloud.vo.OrganazationVo">
+        select
+          p.id, p.name, p.code, p.parent_id, p.name as label, d.id as deptId, d.name as deptName, 2 as flag
+        from
+        system_position p
+        left join system_department d on d.id = p.department_id
+        where p.status = 1
+        and p.parent_id = 0
+    </select>
+
+    <select id="getChildPositionFlag" resultType="java.lang.Integer">
+        select count(1)
+        from
+          system_position p
+        where find_in_set(#{positionId},p.path)
+        and p.id = #{parentId}
+    </select>
+
+    <update id="disableChildPositonById" parameterType="com.fuli.cloud.model.SystemPosition">
+        update system_position
+        set
+          status = 0,
+          update_time = #{updateTime},
+          operation_account = #{operationAccount}
+        where
+          find_in_set(#{id},path)
+        and
+          status = 1
+    </update>
+
+</mapper>

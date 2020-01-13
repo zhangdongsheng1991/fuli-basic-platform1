@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SaAsCompanyServiceMapper">
+
+    <!--获取服务（企业已开通 / 第三方服务）-->
+    <select id="listServiceModule" resultType="com.fuli.cloud.vo.service.SaAsServiceModuleVO">
+        SELECT
+            s.id,
+            s.module_id,
+            s.`name`,
+            s.logo_url,
+            s.logo_url_not
+        FROM
+            saas_service_module s
+        <if test="companyId != null">
+          LEFT JOIN saas_company_service c ON c.service_id = s.id
+        </if>
+        WHERE
+            1 = 1
+        <if test="companyId != null">
+            AND c.state=1 AND c.company_id= #{companyId}
+            ORDER BY c.id
+        </if>
+        <if test="isOther != null">
+            AND s.is_other = 1 AND s.state=1
+            <if test="ids != null and ids.size() >0 ">
+                AND s.id NOT IN
+                <foreach collection="ids" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            ORDER BY s.id
+        </if>
+    </select>
+
+
+
+</mapper>

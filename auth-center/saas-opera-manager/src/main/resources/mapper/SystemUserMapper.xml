@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SystemUserMapper">
+
+    <!--我的头像框-->
+    <select id="findMyPictureFrame" resultType="com.fuli.cloud.vo.employee.UserPictureFrameVO">
+        SELECT
+            u.id,
+            u.`name` realName,
+            IFNULL(f.open_state,2)openState,
+        (SELECT
+                replace(GROUP_CONCAT(r.`name`),","," / ")
+            FROM
+                system_role r
+            INNER JOIN system_role_user ru ON r.id = ru.role_id
+            WHERE  ru.user_id = u.id AND r.`status`=1 ) roleName
+        FROM
+          `system_user` u
+        LEFT JOIN system_floating_window f ON u.id = f.user_id
+        WHERE
+             u.id= #{userId}
+    </select>
+
+	<!--获取我的档案（包含角色-部门-岗位等信息）-->
+	<select id="findUserArchives" resultType="com.fuli.cloud.vo.employee.UserArchivesVO">
+        SELECT
+            u.id,
+            u.phone_number,
+            u.email,
+            u.username,
+            u.`name` realName,
+            DATE_FORMAT(u.employment_date,'%Y-%m-%d') employmentDate,
+            (SELECT
+                    replace(GROUP_CONCAT(r.`name`),","," / ")
+                FROM
+                    system_role r
+                INNER JOIN system_role_user ru ON r.id = ru.role_id
+                WHERE  ru.user_id = #{userId} AND r.`status`=1 ) roleName,
+            (SELECT
+                    replace(GROUP_CONCAT(`name`),","," > ")
+                FROM
+                    system_department
+                WHERE
+                    FIND_IN_SET(id,(SELECT path FROM system_department WHERE id=u.dept_id)) OR id=u.dept_id) departmentName,
+            (SELECT
+                    replace(GROUP_CONCAT(`name`),","," > ")
+                FROM
+                    system_position
+                WHERE
+                    FIND_IN_SET(id,(SELECT path FROM system_position WHERE id=u.position_id)) OR id=u.position_id) positionName
+        FROM
+            `system_user` u
+        WHERE
+             u.id= #{userId}
+    </select>
+
+	<select id="getSystemUserEditOrViewVOList" parameterType="com.fuli.cloud.dto.user.SystemUserEditOrViewQueryDTO"
+			resultType="com.fuli.cloud.vo.SystemUserEditOrViewVO">
+		SELECT
+			u.id,
+		u.status,
+			u.username,
+			u.`name`,
+			u.phone_number,
+			u.certificate_card,
+			u.email,
+			u.dept_id deptId,
+			u.position_id positionId,
+			u.open_system,
+			u.employment_date,
+			p.`name` positionName,
+			d.`name` deptName
+		FROM
+			system_user AS u
+		LEFT JOIN system_department AS d ON u.dept_id = d.id
+		LEFT JOIN system_position AS p ON u.position_id = p.id
+		<where>
+			<if test="idsStr != null and idsStr != ''">
+				u.id IN (${idsStr})
+			</if>
+			<if test="certificateCard != null and certificateCard != ''">
+				AND u.certificate_card = #{certificateCard}
+			</if>
+			<if test="status != null ">
+				AND u.status = #{status}
+			</if>
+		</where>
+    </select>
+	<select id="listOnePage" parameterType="com.fuli.cloud.dto.user.SystemUserSearchDTO" resultType="com.fuli.cloud.vo.SystemUserListVO">
+		SELECT
+		u.id,
+		u.`name`,
+		u.`phone_number`,
+		u.`certificate_card`,
+		d. `name` AS departmentName,
+		p.`name` AS positionName,
+		u.`open_system`,
+		u.`status`,
+		u.`create_operator`,
+		u.`create_time`,
+		u.`update_time`
+		FROM
+		system_user u
+		LEFT JOIN system_department d ON u.dept_id = d.id
+		LEFT JOIN system_position p ON u.position_id = p.id
+		WHERE
+			u.`status` != -1 AND d.`status` = 1 AND p.`status` = 1
+		<if test="name != null and name != ''">
+			AND u.name LIKE "%${name}%"
+		</if>
+		<if test="phoneNumber != null and phoneNumber != ''">
+			AND u.phone_number LIKE "%${phoneNumber}%"
+		</if>
+		<if test="openSystem != null ">
+			AND u.open_system = #{openSystem}
+		</if>
+		<if test="status != null ">
+			AND u.status = #{status}
+		</if>
+		<if test="startTime != null">
+			<![CDATA[  AND DATE_FORMAT( u.create_time,'%Y-%m-%d %H:%i:%s') >=  #{startTime}  ]]>
+		</if>
+		<if test="endTime != null ">
+			<![CDATA[  AND DATE_FORMAT( u.create_time,'%Y-%m-%d %H:%i:%s') <=  #{endTime}  ]]>
+		</if>
+		<!--数据权限根据当前用户所属部门和岗位查询/规则：查询下级部门下级岗位与自己创建的人-->
+		<if test="deptId != null and positionId != null and id != null">
+			AND (FIND_IN_SET(#{positionId},p.path) OR FIND_IN_SET(#{deptId},d.path) OR u.id = #{id} OR u.create_op_id = #{id})
+		</if>
+		ORDER BY u.create_time DESC, u.id DESC
+	</select>
+
+	<select id="getSysUserExportVOList" parameterType="com.fuli.cloud.dto.user.SystemUserSearchDTO" resultType="com.fuli.cloud.vo.SysUserExportVO">
+		SELECT
+		u.id,
+		u.`name`,
+		u.phone_number,
+		u.certificate_card,
+		u.email,
+		u.`status`,
+		u.open_system,
+		u.create_time,
+		u.create_operator,
+		u.employment_date,
+		u.update_time,
+		d.`name` AS deptName,
+		p.`name` AS positionName
+		FROM
+		system_user AS u
+		LEFT JOIN system_position AS p ON u.position_id = p.id
+		LEFT JOIN system_department AS d ON u.dept_id = d.id
+		WHERE
+		u.`status` != -1
+		AND d.`status` = 1
+		AND p.`status` = 1
+		<if test="name != null and name != ''">
+			AND u.name LIKE "%${name}%"
+		</if>
+		<if test="phoneNumber != null and phoneNumber != ''">
+			AND u.phone_number LIKE "%${phoneNumber}%"
+		</if>
+		<if test="openSystem != null ">
+			AND u.open_system = #{openSystem}
+		</if>
+		<if test="status != null ">
+			AND u.status = #{status}
+		</if>
+		<if test="startTime != null">
+			<![CDATA[  AND DATE_FORMAT( u.create_time,'%Y-%m-%d %H:%i:%s') >=  #{startTime}  ]]>
+		</if>
+		<if test="endTime != null ">
+			<![CDATA[  AND DATE_FORMAT( u.create_time,'%Y-%m-%d %H:%i:%s') <=  #{endTime}  ]]>
+		</if>
+		<!--数据权限根据当前用户所属部门和岗位查询/规则：查询下级部门下级岗位与自己创建的人
+		-->
+		<if test="deptId != null and positionId != null and id != null">
+			AND (FIND_IN_SET(#{positionId},p.path) OR FIND_IN_SET(#{deptId},d.path) OR u.id = #{id} OR u.create_op_id
+			=#{id})
+		</if>
+		ORDER BY u.create_time DESC, u.id DESC
+	</select>
+
+	<select id="statisticsEmpCount" parameterType="com.fuli.cloud.dto.EmpCountDTO" resultType="int">
+		SELECT COUNT(u.id)
+		FROM system_user u
+		LEFT JOIN system_position AS p ON u.position_id = p.id
+		LEFT JOIN system_department AS d ON u.dept_id = d.id
+		WHERE
+		<if test="status == 0">
+			u.dimission_date BETWEEN #{firtSecoundOfMonth} AND #{lastSecoundOfMonth}
+		</if>
+		<if test="status == 1">
+			u.employment_date BETWEEN #{firtSecoundOfMonth} AND #{lastSecoundOfMonth}
+		</if>
+		<!--数据权限根据当前用户所属部门和岗位查询/规则：查询下级部门下级岗位与自己创建的人  -->
+		<if test="deptId != null and positionId != null and id != null">
+			AND (FIND_IN_SET(#{positionId},p.path) OR FIND_IN_SET(#{deptId},d.path) OR u.id = #{id} OR u.create_op_id
+			=#{id})
+		</if>
+	</select>
+</mapper>

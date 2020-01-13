@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.fuli.cloud.mapper.DepartmentMapper" >
+  <resultMap id="baseResultMap" type="com.fuli.cloud.vo.DepartmentVo" >
+    <result column="id" jdbcType="INTEGER" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+      <result column="name" jdbcType="VARCHAR" property="label" />
+    <result column="code" jdbcType="VARCHAR" property="code" />
+    <result column="parent_id" jdbcType="INTEGER" property="parentId" />
+    <result column="status" jdbcType="TINYINT" property="status" />
+    <result column="operation_account" jdbcType="VARCHAR" property="operationAccount" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="employeeCount" jdbcType="INTEGER" property="employeeCount" />
+      <result column="parentName" jdbcType="VARCHAR" property="parentName"/>
+
+  </resultMap>
+
+  <sql id="baseColumnList" >
+    id, name, code, path, parent_id, status,operation_account, update_time, create_time
+  </sql>
+
+  <select id="getDepartmentList" parameterType="com.fuli.cloud.dto.DepartmentDto" resultMap="baseResultMap">
+    select
+      d.id, d.name, d.code, d.path, d.parent_id, d.status,d.operation_account, d.update_time, d.create_time,
+      (select count(1) from system_user e where e.status = 1 and e.dept_id = d.id) employeeCount,
+      dp.name parentName
+    from
+      system_department d
+      left join system_department dp on d.parent_id = dp.id
+    <where>
+        <if test="name != null and name != ''">
+            d.name like concat('%',#{name},'%')
+        </if>
+
+        <if test="code != null and code != ''">
+            and d.code like concat('%',#{code},'%')
+        </if>
+
+        <if test="startTime != null">
+            and d.create_time >= #{startTime}
+        </if>
+
+        <if test="endTime != null">
+            and d.create_time &lt;= #{endTime}
+        </if>
+
+        <if test="status != null">
+            and d.status = #{status}
+        </if>
+    </where>
+      order by d.id desc
+  </select>
+
+    <!--通过部门编码获取部门信息-->
+    <select id="getDepartmentByCode" resultType="com.fuli.cloud.model.SystemDepartment">
+        select
+        <include refid="baseColumnList"/>
+        from system_department
+        where code = #{code}
+        limit 1
+    </select>
+
+    <select id="getDepartmentAndParentById" resultType="com.fuli.cloud.vo.DepartmentVo">
+        select
+          d.id, d.name, d.code, d.path, d.parent_id, d.status,d.operation_account, d.update_time, d.create_time,
+          dp.name parentName
+        from
+            system_department d
+        left join
+            system_department dp on d.parent_id = dp.id
+        where
+          d.id = #{id}
+    </select>
+
+    <!--根据部门名称查找部门-->
+    <select id="getDepartmentByName" resultType="com.fuli.cloud.vo.DepartmentVo">
+        select
+        <include refid="baseColumnList"/>
+        from system_department
+        <where>
+            <if test="name != null and name != ''">
+                and name= #{name}
+            </if>
+            <if test="code != null and code != ''">
+                and code = #{code}
+            </if>
+        </where>
+        limit 1
+    </select>
+
+    <select id="getAllDepartmentInfo" parameterType="com.fuli.cloud.dto.DepartmentDto" resultType="com.fuli.cloud.vo.OrganazationVo">
+        select
+        id, name, code, parent_id, id as deptId, name as label, name as deptName, 1 as flag
+        from
+        system_department d
+        where d.status = 1
+    </select>
+
+    <select id="getEmpVoByDeptId" resultType="com.fuli.cloud.vo.employee.EmpDeptPositionVo">
+        SELECT
+        e.id,
+        e.`name`,
+        e.phone_number,
+        e.certificate_card,
+        d.`name` deptName,
+        p.`name` positionName,
+        e.`status`
+        FROM
+        system_user e
+        LEFT JOIN system_department d ON e.dept_id = d.id
+        LEFT JOIN `system_position` p ON e.position_id = p.id
+        WHERE
+        <choose>
+            <when test="isAuthQuery != null">
+                e.`status` = 1
+                AND (d.id = #{deptId} OR FIND_IN_SET(#{deptId},d.path) )
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY e.create_time
+            </when>
+            <otherwise>
+                e.`status` != -1
+                AND (d.id = #{deptId} OR FIND_IN_SET(#{deptId},d.path) )
+                <if test="status != null">
+                    AND e.`status` = #{status}
+                </if>
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY
+                CONVERT (e.`name` USING gbk) ASC
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <select id="getEmpLisByPositionId" resultType="com.fuli.cloud.vo.employee.EmpDeptPositionVo">
+        SELECT
+        e.id,
+        e.`name`,
+        e.phone_number,
+        e.certificate_card,
+        d.`name` deptName,
+        p.`name` positionName,
+        e.`status`
+        FROM
+        system_user e
+        LEFT JOIN system_department d ON e.dept_id = d.id
+        LEFT JOIN `system_position` p ON e.position_id = p.id
+        WHERE
+        <choose>
+            <when test="isAuthQuery != null">
+                e.`status` = 1
+                AND (p.id = #{positionId} OR FIND_IN_SET(#{positionId},p.path) )
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY e.create_time
+            </when>
+            <otherwise>
+                e.`status` != -1
+                AND (p.id = #{positionId} OR FIND_IN_SET(#{positionId},p.path) )
+                <if test="status != null">
+                    AND e.`status` = #{status}
+                </if>
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY
+                CONVERT (e.`name` USING gbk) ASC
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <select id="getEmpList" parameterType="com.fuli.cloud.dto.OrganizationChartDto" resultType="com.fuli.cloud.vo.employee.EmpDeptPositionVo">
+        SELECT
+        e.id ,
+        e.name,
+        e.phone_number,
+        e.certificate_card,
+        d.name deptName,
+        d.id did,
+        p.name positionName,
+        e.`status`
+        FROM
+        system_user e
+        LEFT JOIN system_department d ON e.dept_id = d.id
+        LEFT JOIN `system_position` p ON e.position_id = p.id
+        WHERE
+        <choose>
+            <when test="isAuthQuery != null">
+                e.`status` = 1
+                <if test="deptName != null and deptName != ''">
+                    AND d.name like concat('%',#{deptName},'%')
+                </if>
+                <if test="positionName != null and positionName != ''">
+                    AND p.name like concat('%',#{positionName},'%')
+                </if>
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY e.create_time
+            </when>
+            <otherwise>
+                e.`status` != -1
+                <if test="deptName != null and deptName != ''">
+                    AND d.name like concat('%',#{deptName},'%')
+                </if>
+                <if test="positionName != null and positionName != ''">
+                    AND p.name like concat('%',#{positionName},'%')
+                </if>
+                <if test="status != null">
+                    AND e.`status` = #{status}
+                </if>
+                <if test="empName != null and empName !=''">
+                    AND e.name like concat('%',#{empName},'%')
+                </if>
+                ORDER BY
+                CONVERT (e.`name` USING gbk) ASC
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <select id="getDepartmentByParentId" resultType="com.fuli.cloud.vo.OrganazationVo">
+        select
+            id, name, code, parent_id, id as deptId,name as label, name as deptName, 1 as flag
+        from
+        system_department d
+        where
+        d.`status` = 1
+        and d.parent_id = #{parentId}
+        group by d.id
+    </select>
+
+    <select id="getEnablePositionCount" resultType="java.lang.Integer">
+    select
+        count(p.id)
+    from
+        system_department d
+    inner join
+         system_position p on d.id = p.department_id
+    where
+        (d.id = #{departmentId} or FIND_IN_SET(#{departmentId},d.path))
+    and
+        p.`status` = 1
+  </select>
+
+    <update id="updateDepartmentPathByParentId">
+        update
+          system_department
+        set
+          path =  replace(concat(':',path,','),concat(':',#{oldPath},','),concat(#{newPath},',')),update_time = now()
+        where
+
+          FIND_IN_SET(#{departmentId},path)
+    </update>
+
+    <update id="updatePathSeparateByParentId">
+        update
+          system_department
+        set
+          path =  substr(path,1,length(path)-1)
+        where
+          FIND_IN_SET(#{departmentId},path)
+    </update>
+
+    <select id="getChildDeptFlag" resultType="java.lang.Integer">
+        select count(1)
+        from
+          system_department p
+        where find_in_set(#{departmentId},p.path)
+        and p.id = #{parentId}
+    </select>
+
+    <update id="disableChildDeptById" parameterType="com.fuli.cloud.model.SystemDepartment">
+        update system_department
+        set
+          status = 0,
+          update_time = #{updateTime},
+          operation_account = #{operationAccount}
+        where
+          find_in_set(#{id},path)
+        and
+          status = 1
+    </update>
+
+
+</mapper>

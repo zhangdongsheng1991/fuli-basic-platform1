@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SystemMenuMapper">
+
+    <!--根据用户角色获取拥有的菜单模块-->
+    <select id="listSystemModuleByRoles" resultType="com.fuli.cloud.vo.SystemModuleVO">
+        SELECT
+            sm.id,
+            sm.module_name modelName
+        FROM
+            system_module sm
+        <if test="roles != null and roles.size() > 0">
+            LEFT JOIN `system_menu` m ON m.module_id = sm.id
+            LEFT JOIN system_role_menu rm ON m.id = rm.menu_id
+        </if>
+        WHERE 1=1
+        <if test="type != null">
+            AND sm.id != 2
+        </if>
+        <if test="roles != null and roles.size() > 0">
+            AND m.type = 0 AND m.`status`=1 AND rm.role_id IN
+            <foreach collection="roles" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            GROUP BY sm.id
+        </if>
+        ORDER BY sm.sort
+    </select>
+
+    <!--根据用户角色获取菜单，只获取菜单不获取按钮-->
+    <select id="listMenuByRoles" resultType="com.fuli.cloud.vo.menu.MenuVO">
+        SELECT
+            m.id,
+            m.module_id,
+            m.`name` menuName,
+            m.label,
+            m.icon,
+            m.parent_id,
+            m.sort,
+            m.url
+        FROM
+          `system_menu` m
+        <if test="roles != null and roles.size() > 0">
+          LEFT JOIN system_role_menu rm ON m.id = rm.menu_id
+        </if>
+        WHERE m.`status`=1
+        <if test="type == 0">
+            AND m.type = 0 AND m.module_id != 2
+        </if>
+        <if test="type == 2">
+            AND m.type = 0 AND m.module_id = 2
+        </if>
+        <if test="type == null">
+            AND LENGTH(m.url) > 3
+        </if>
+        <if test="roles != null and roles.size() > 0">
+            AND rm.role_id IN
+            <foreach collection="roles" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            GROUP BY m.id
+        </if>
+        ORDER BY m.sort ASC
+    </select>
+
+    <!--根据菜单Id返回菜单相关信息(集合)-->
+    <select id="listMenuDetailsByMenuIds" resultType="com.fuli.cloud.vo.menu.MenuVO">
+        SELECT
+            m.id,
+            m.module_id,
+            m.`name` menuName,
+            m.label,
+            m.icon,
+            m.parent_id,
+            m.sort
+        FROM
+            `system_menu` m
+        WHERE  m.id IN
+        <foreach collection="list" index="index" item="i" separator="," open="(" close=")">
+            #{i}
+        </foreach>
+        <if test="type != null">
+            AND m.type=#{type} AND m.parent_id !=0
+        </if>
+    </select>
+
+
+    <!--根据用户角色获取菜单，只获取按钮-->
+    <select id="listButtonByMenuId" resultType="com.fuli.cloud.vo.menu.MenuButtonVO">
+        SELECT
+            m.id,
+            m.module_id,
+            m.`name` menuName,
+            m.label,
+            m.icon,
+            m.parent_id,
+            m.sort
+        FROM
+          `system_menu` m
+        LEFT JOIN system_role_menu rm ON m.id = rm.menu_id
+        WHERE
+          m.type = 1 AND m.`status`=1 AND m.parent_id = #{menuId}
+        <if test="roles != null and roles.size() > 0">
+            AND rm.role_id IN
+            <foreach collection="roles" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY m.id
+        ORDER BY m.sort ASC
+    </select>
+
+    <select id="findByUrl" resultType="com.fuli.cloud.model.SystemMenuDO">
+        SELECT
+            m.id,
+            m.`name`,
+            m.label,
+            m.icon,
+            m.url
+        FROM
+          `system_menu` m
+        WHERE
+          FIND_IN_SET(#{url} , m.url)
+    </select>
+
+</mapper>

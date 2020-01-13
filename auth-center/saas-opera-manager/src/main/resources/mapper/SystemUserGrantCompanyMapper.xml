@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SystemUserGrantCompanyMapper">
+
+    <sql id ="Base_Column_List">
+        id,company_id,company_name,module_id,module_name,user_id,operation_account,create_time,update_time
+    </sql>
+
+    <select id="getGrantCompanyInfo" parameterType="com.fuli.cloud.dto.SystemUserGrantCompanyQryDto" resultType="com.fuli.cloud.vo.SystemUserGrantCompanyVo">
+      select
+        ugc.id,
+        ugc.company_id,
+        ugc.company_name,
+        ugc.module_id,
+        ugc.module_name,
+        ugc.user_id,
+        ugc.operation_account,
+        ugc.create_time,
+        ugc.update_time,
+        su.name name,
+        su.phone_number phoneNumber
+        from
+        system_user_grant_company ugc
+      left join
+        system_user su on su.id = ugc.user_id
+      <where>
+        <if test="moduleId != null">
+            ugc.module_id = #{moduleId}
+        </if>
+        <if test="companyName != null and companyName != ''">
+            and ugc.company_name like concat('%',#{companyName},'%')
+        </if>
+        <if test="companyId != null">
+            and ugc.company_id = #{companyId}
+        </if>
+        <if test="name != null and name != ''">
+            and su.name like concat('%',#{name},'%')
+        </if>
+        <if test="phoneNumber != null and phoneNumber != ''">
+            and su.phone_number like concat('%',#{phoneNumber},'%')
+        </if>
+      </where>
+        order by ugc.update_time desc,ugc.id desc
+    </select>
+
+    <!--根据企业id获取已添加的管理人员列表-->
+    <select id="listUserGrantByCompanyId" resultType="com.fuli.cloud.vo.ListUserGrantByCompanyIdVO">
+        SELECT
+            u.id,
+            u.`name`,
+            u.phone_number,
+            s.company_name,
+            d.`name` deptName,
+            p.`name` positionName
+        FROM
+        `system_user_grant_company` s
+        INNER JOIN system_user u ON u.id = s.user_id
+        LEFT JOIN system_department d ON d.id=u.dept_id
+        LEFT JOIN system_position p ON p.id = u.position_id
+        WHERE
+          s.company_id = #{companyId}
+        <if test="moduleId != null">
+            AND s.module_id = #{moduleId}
+        </if>
+    </select>
+
+    <!--获取我管理的主体企业列表-->
+    <select id="listMasterCompanyByUserId" resultType="com.fuli.cloud.vo.ListByUserIdGrantCompanyVO">
+        SELECT
+            c.company_id,
+            c.company_name,
+            c.business_license_code
+        FROM
+            basic_server.company c
+        INNER JOIN (
+            SELECT
+              r.main_company_id
+            FROM
+              basic_server.company_relation_manage r
+            LEFT JOIN `system_user_grant_company` s ON s.company_id = r.customer_company_id
+            WHERE s.user_id = #{userId}
+            <if test="moduleId != null">
+                AND s.module_id = #{moduleId}
+            </if>
+        UNION
+            SELECT
+            r.main_company_id
+            FROM
+              basic_server.company_relation_manage r
+            LEFT JOIN `system_user_grant_company` s ON s.company_id = r.main_company_id
+            WHERE s.user_id = #{userId}
+            <if test="moduleId != null">
+                AND s.module_id = #{moduleId}
+            </if>
+        ) b ON c.company_id = b.main_company_id
+        WHERE 1=1
+        <if test="companyName != null and companyName != '' ">
+            AND c.company_name LIKE "%${companyName}%"
+        </if>
+    </select>
+
+
+    <!-- 根据主体企业id获取我管理的客户企业列表 -->
+    <select id="listClientCompanyByMasterCompanyId" resultType="com.fuli.cloud.vo.ListByUserIdGrantCompanyVO">
+        SELECT
+            c.company_id,
+            c.company_name,
+            c.business_license_code
+        FROM
+            basic_server.company c
+        INNER JOIN basic_server.company_relation_manage r ON c.company_id = r.customer_company_id
+        INNER JOIN `system_user_grant_company` s ON  c.company_id = s.company_id
+        WHERE
+        s.user_id = #{userId}
+        <if test="companyId != null and companyId != 0">
+            AND r.main_company_id = #{companyId}
+        </if>
+        <if test="companyName != null and companyName != '' ">
+            AND c.company_name LIKE "%${companyName}%"
+        </if>
+        GROUP BY c.company_id
+    </select>
+
+
+    <select id="listByCompanyIdAndModuleIdAndUserIds" resultType="com.fuli.cloud.model.SystemUserGrantCompanyDO">
+        SELECT
+            id,
+            company_id,
+            company_name,
+            module_id,
+            module_name,
+            user_id
+        FROM
+            system_user_grant_company
+        WHERE
+            module_id=#{moduleId} AND company_id=#{companyId}
+        <if test="userIds != null and userIds.size() > 0">
+            AND user_id IN
+            <foreach collection="userIds"  item="user" index="index" open="(" separator="," close=")">
+                #{user}
+            </foreach>
+        </if>
+    </select>
+
+    <insert id="batchInsert" >
+        INSERT INTO `system_user_grant_company`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            `company_id`,
+            `company_name`,
+            `module_id`,
+            `module_name`,
+            `user_id`,
+            `operation_account`,
+            `create_time`,
+            `update_time`
+        </trim>
+        values
+        <foreach collection="userIds"  item="item" separator="," >
+            (
+            #{sdo.companyId},
+            #{sdo.companyName},
+            #{sdo.moduleId},
+            #{sdo.moduleName},
+            #{item},
+            #{sdo.operationAccount},
+            #{sdo.createTime},
+            #{sdo.updateTime}
+            )
+        </foreach>
+    </insert>
+
+
+</mapper>

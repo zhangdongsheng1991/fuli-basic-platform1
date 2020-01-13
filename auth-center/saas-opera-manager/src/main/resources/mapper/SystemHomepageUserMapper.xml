@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.cloud.mapper.SystemHomepageUserMapper">
+
+    <!--根据用户id获取首页模块，用户id为空表示是超级管理员-->
+    <select id="listSystemHomepageByUserId" resultType="com.fuli.cloud.vo.homepage.HomepageModuleVO">
+        SELECT
+            h.id homepageModuleId,
+            h.module_id,
+            h.`name`,
+            h.label,
+            h.type,
+            h.sort,
+            h.remark
+        FROM
+            system_homepage_module h
+        LEFT JOIN system_role_homepage_module rh ON rh.homepage_module_id=h.id
+        LEFT JOIN system_role_user ru ON ru.role_id=rh.role_id
+        WHERE h.state = 1
+        <if test="userId != null ">
+            AND ( h.is_default=0 OR ru.user_id= #{userId} )
+        </if>
+        GROUP BY h.id
+        ORDER BY h.sort
+    </select>
+
+    <!--批量插入-->
+    <insert id="batchInsert" parameterType="com.fuli.cloud.model.SystemHomepageUserDO">
+        INSERT INTO `system_homepage_user`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            `user_id`,
+            `homepage_module_id`,
+            `sort`,
+            `type`,
+            `create_time`
+        </trim>
+        VALUES
+        <foreach collection="list" index="index" item="i" separator=",">
+        (
+            #{userId},
+            #{i.homepageModuleId},
+            #{i.sort},
+            #{i.type},
+            NOW()
+        )
+        </foreach>
+    </insert>
+
+</mapper>

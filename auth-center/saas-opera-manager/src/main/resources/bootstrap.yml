@@ -1,0 +1,38 @@
+server:
+  port: 9002
+
+spring:
+  kafka:
+    bootstrap-servers: 172.16.4.6:9092
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: saas-opera-manager
+  cloud:
+    #####  以下是nacos配置
+    nacos:
+      discovery:  # nacos注册中心
+        server-addr: 172.16.4.4:8847
+      config:   # nacos配置中心
+        namespace: 7332b777-274a-41ae-be85-efd808764476
+        server-addr: 172.16.4.4:8847
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: saas-opera-manager.yml
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # redis配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml  # sentinel配置
+            group: DEFAULT_GROUP
+          - data-id: rabbitmq.yml  # mq配置
+            group: DEFAULT_GROUP
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    deserialization:
+      accept-float-as-int: false
+
+logging:
+  level:
+    com.alibaba.nacos: error
+    com.fuli.cloud: debug

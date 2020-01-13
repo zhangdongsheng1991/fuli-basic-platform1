@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fuli.user.dao.AppUserDao">
+
+    <!--根据用户id获取企业列表-->
+    <select id="listCompanyByUserIdAndOpenSaAs" resultType="com.fuli.user.vo.CompanyByUserIdVO" >
+        SELECT
+            co.company_id companyId,
+            co.company_open_id companyOpenId,
+            co.company_name companyName,
+            e.`name`,
+            e.`status` employeeStatus,
+            e.is_show isShow,
+            e.project_flag projectFlag,
+            e.id employeeId,
+            <if test="openSaAs ==1">
+                d.employee_id dId,
+            </if>
+            (CASE
+            WHEN co.business_license_code != '' THEN co.business_license_code
+            ELSE co.taxpayer_identification_number END ) companyCreditCode
+        FROM
+            company co
+        INNER JOIN employee e ON e.company_id = co.company_id
+        <if test="openSaAs ==1">
+            LEFT JOIN saas_default_company d ON e.id = d.employee_id
+        </if>
+        WHERE
+            e.`status`!= -1
+            AND e.user_id = #{userId}
+            <if test="openSaAs == 0">
+                AND e.`status` = 1
+                AND co.`status` = 1
+            </if>
+        ORDER BY e.create_time DESC
+    </select>
+
+
+
+    <!--根据用户id获取企业列表-->
+    <select id="listCompanyByUserId" resultType="com.fuli.user.vo.CompanyByUserIdVO" >
+        SELECT
+            co.company_id companyId,
+            co.company_open_id companyOpenId,
+            co.company_name companyName,
+            e.`name`,
+            e.`status` employeeStatus,
+            e.is_show isShow,
+            e.project_flag projectFlag,
+            e.id employeeId,
+			d.`name` deptName,
+            p.`name` positionName,
+            (CASE
+            WHEN co.business_license_code != '' THEN co.business_license_code
+            ELSE co.taxpayer_identification_number END ) companyCreditCode
+        FROM
+            company co
+        INNER JOIN employee e ON e.company_id = co.company_id
+        LEFT JOIN position p ON p.id = e.position_id
+		LEFT JOIN department d ON d.id = e.dept_id
+        WHERE
+            e.`status` = 1
+        AND co.`status` = 1
+        AND e.user_id = #{userId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <!--根据用户id和企业id获取用户信息, 中台获取token用-->
+    <select id="findCompanyAndUserById" resultType="com.fuli.user.vo.AppUserVo" >
+        SELECT
+            <if test="companyId != null and companyId !=''">
+                co.company_id companyId,
+                e.`status` employeeStatus,
+                e.project_flag projectFlag,
+                e.id employeeId,
+                (CASE
+                WHEN co.business_license_code != '' THEN co.business_license_code
+                ELSE co.taxpayer_identification_number END ) companyCreditCode ,
+            </if>
+            a.id,
+            a.phone,
+            a.username,
+            a.real_name,
+            a.user_from
+        FROM
+            app_user a
+        <if test="companyId != null and companyId !='' ">
+            LEFT JOIN employee e ON e.user_id = a.id
+            LEFT JOIN company co ON co.company_id=e.company_id
+        </if>
+        WHERE
+            a.id = #{userId}
+        <if test="companyId != null and companyId !=''">
+            AND co.company_id = #{companyId}
+            ORDER BY e.project_flag ASC
+        </if>
+        LIMIT 1
+    </select>
+
+
+    <!-- 切换企业时获取用户的企业列表 -->
+    <select id="listCompanyAndUserById" resultType="com.fuli.user.vo.AppUserVo" >
+        SELECT
+            co.company_id companyId,
+            e.`status` employeeStatus,
+            e.project_flag projectFlag,
+            e.id employeeId,
+            (CASE
+            WHEN co.business_license_code != '' THEN co.business_license_code
+            ELSE co.taxpayer_identification_number END ) companyCreditCode ,
+            a.id,
+            a.phone,
+            a.username,
+            a.real_name,
+            a.user_from
+        FROM
+        app_user a
+        LEFT JOIN employee e ON e.user_id = a.id
+        LEFT JOIN company co ON co.company_id=e.company_id
+        WHERE
+        a.id = #{userId}
+        AND co.company_id = #{companyId}
+        LIMIT 1
+    </select>
+
+    <!--根据用户openId和企业openId获取企业信息-->
+    <select id="findCompanyAndUserByOpenId" resultType="com.fuli.user.vo.CompanyByUserIdVO" >
+        SELECT
+            co.company_id companyId,
+            co.company_open_id companyOpenId,
+            co.company_name companyName,
+            e.`status` employeeStatus,
+            e.is_show isShow,
+            e.project_flag projectFlag,
+            e.id employeeId,
+            (CASE
+                WHEN co.business_license_code != '' THEN co.business_license_code
+                ELSE co.taxpayer_identification_number END ) companyCreditCode
+        FROM
+            app_user a
+        LEFT JOIN employee e ON e.user_id = a.id
+        LEFT JOIN company co ON co.company_id=e.company_id
+        WHERE
+            a.id = #{userId} AND co.company_open_id = #{companyOpenId}
+        LIMIT 1
+    </select>
+
+</mapper>

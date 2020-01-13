@@ -1,0 +1,33 @@
+server:
+  port: 8004
+spring:
+  kafka:
+    bootstrap-servers: 172.16.4.6:9092
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: api-gateway
+  cloud:
+    #####  以下是nacos配置
+    nacos:   # nacos注册中心
+      discovery:  # nacos注册中心
+        server-addr: 172.16.4.4:8847
+      config:   # nacos配置中心
+        namespace: 3744e5d5-f6d4-4a8d-a8f4-2dd8afcc3aaa  # 命名空间
+        server-addr: 172.16.4.4:8847
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: api-gateway.yml
+            group: DEFAULT_GROUP
+          - data-id: rabbitmq.yml # mq配置
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # rediss配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml # sentinel配置
+            group: DEFAULT_GROUP
+    # sentinel客户端端口
+    sentinel:
+      transport:
+        port: 9004
+
+
+

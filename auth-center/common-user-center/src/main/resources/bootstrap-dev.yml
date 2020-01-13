@@ -1,0 +1,27 @@
+#端口配置
+server:
+  port: 8002 #固定端口
+spring:
+  kafka:
+    bootstrap-servers: 172.16.4.6:9092
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: common-user-center
+  cloud:
+    #####  以下是nacos配置
+    nacos:
+      discovery:  # nacos注册中心
+        server-addr: 172.16.4.4:8848
+      config:   # nacos配置中心
+        namespace: d07604cc-12bb-4fd7-b95a-641ac8046dc9
+        server-addr: 172.16.4.4:8848
+        ext-config:   # 引入多配置文件，一个配置文件对应一个data-id，data-id必须带一个group
+          - data-id: common-user-center.yml
+            group: DEFAULT_GROUP
+          - data-id: redis.yml  # rediss配置
+            group: DEFAULT_GROUP
+          - data-id: common-sentinel.yml # sentinel配置
+            group: DEFAULT_GROUP
+          - data-id: redisson.yml
+            group: DEFAULT_GROUP

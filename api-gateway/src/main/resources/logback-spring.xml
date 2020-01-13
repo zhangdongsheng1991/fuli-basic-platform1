@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="true" scanPeriod="1 seconds">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    <springProperty source="spring.kafka.bootstrap-servers" name="kafkaAddr" scope="context"/>
+
+    <!-- 控制台的日志输出样式 -->
+    <property name="CONSOLE_LOG_PATTERN" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>debug</level>
+        </filter>
+        <!-- 日志输出编码 -->
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="kafkaAppender" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <!--<customFields>{"appname":"myapp"}</customFields>-->
+        </encoder>
+        <topic>applog</topic>
+        <!-- 不用关注日志如何分区  -->
+        <keyingStrategy class="com.github.danielwegener.logback.kafka.keying.NoKeyKeyingStrategy" />
+        <!-- 异步打印日志 -->
+        <deliveryStrategy class="com.github.danielwegener.logback.kafka.delivery.AsynchronousDeliveryStrategy" />
+        <!-- each <producerConfig> translates to regular kafka-client config (format: key=value) -->
+        <!-- producer configs are documented here: https://kafka.apache.org/documentation.html#newproducerconfigs -->
+        <!-- kafka地址，多个时用逗号隔开-->
+        <producerConfig>bootstrap.servers=${kafkaAddr}</producerConfig>
+        <producerConfig>retries=1</producerConfig>
+        <producerConfig>batch-size=16384</producerConfig>
+        <producerConfig>buffer-memory=33554432</producerConfig>
+        <producerConfig>properties.max.request.size==2097152</producerConfig>
+    </appender>
+
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <property name="logFilePath" value="/data/logs/qudao/${springAppName}/"/>
+
+    <!-- 输出debug日志到文件-->
+    <appender name="DebugRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <file>${logFilePath}system_debug.log</file>
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logFilePath}%d{yyyy-MM-dd}/system_debug.%i.log </fileNamePattern>
+            <maxFileSize>15MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %logger %M %L - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- 输出error日志到文件-->
+    <appender name="ErrorRollingFile"  class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <file>${logFilePath}system_error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logFilePath}%d{yyyy-MM-dd}/system_error.%i.log </fileNamePattern>
+            <maxFileSize>15MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %logger %M %L - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- 输出info日志到文件-->
+    <appender name="InfoRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <file>${logFilePath}system.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logFilePath}%d{yyyy-MM-dd}/system.%i.log </fileNamePattern>
+            <maxFileSize>15MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %logger %M %L - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="ErrorRollingFile"/>
+        <appender-ref ref="InfoRollingFile"/>
+        <appender-ref ref="kafkaAppender" />
+        <appender-ref ref="console"/>
+    </root>
+
+</configuration>
