@@ -127,7 +127,7 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-            <version>4.12</version>
+            <version>4.13.1</version>
         </dependency>
 
         <!-- CFCA 相关Jar包引入 特别说明： 该相关包在公司私服上 -->
